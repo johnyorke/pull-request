@@ -3,7 +3,37 @@ import { PR_BY_ID, PULL_REQUESTS } from '../data/levels';
 import { applyMetrics, evaluatePR, rankFor } from '../game/scoring';
 import type { Defect, PullRequest, ReviewFlag, ViolationType } from '../types';
 
-const [offByOne, cleanPr, malicious] = PULL_REQUESTS;
+const [stylePr, errorPr, securityPr] = PULL_REQUESTS;
+
+const cleanPr: PullRequest = {
+  id: 'pr-clean',
+  number: 9999,
+  title: 'Clean formatting-only change',
+  author: 'test.user',
+  authorKind: 'human',
+  branch: 'chore/formatting',
+  description: 'A safe change.',
+  files: [
+    {
+      path: 'src/clean.ts',
+      language: 'typescript',
+      lines: [
+        {
+          id: 'clean-1',
+          kind: 'add',
+          oldNo: null,
+          newNo: 1,
+          text: 'const answer = 42;',
+        },
+      ],
+    },
+  ],
+  defects: [],
+  arrivalDelayMs: 0,
+  slaMs: 100_000,
+  ci: 'PASS',
+  tests: '1 passed',
+};
 
 function flagFor(
   pr: PullRequest,
@@ -21,16 +51,22 @@ function flagFor(
 }
 
 describe('PR scoring', () => {
-  it('rewards catching every defect in a flawed PR', () => {
-    const flags = offByOne.defects.map((defect) => flagFor(offByOne, defect));
-    const result = evaluatePR(offByOne, flags, 'rejected', 90_000);
+  it('rewards rejecting each PR on its single guideline', () => {
+    for (const pr of PULL_REQUESTS) {
+      const result = evaluatePR(
+        pr,
+        [flagFor(pr, pr.defects[0])],
+        'rejected',
+        90_000,
+      );
 
-    expect(result.correctAction).toBe(true);
-    expect(result.caught).toHaveLength(2);
-    expect(result.missed).toHaveLength(0);
-    expect(result.falseFlags).toHaveLength(0);
-    expect(result.allDefectsCaught).toBe(true);
-    expect(result.scoreDelta).toBeGreaterThan(300);
+      expect(result.correctAction).toBe(true);
+      expect(result.caught).toHaveLength(1);
+      expect(result.missed).toHaveLength(0);
+      expect(result.falseFlags).toHaveLength(0);
+      expect(result.allDefectsCaught).toBe(true);
+      expect(result.scoreDelta).toBeGreaterThan(200);
+    }
   });
 
   it('rewards a clean approval without incidents', () => {
@@ -49,7 +85,7 @@ describe('PR scoring', () => {
       [
         {
           filePath: cleanPr.files[0].path,
-          lineId: cleanPr.files[0].lines[13].id,
+          lineId: cleanPr.files[0].lines[0].id,
           type: 'SECURITY',
         },
       ],
@@ -64,23 +100,28 @@ describe('PR scoring', () => {
   });
 
   it('treats a missed security defect on approval as an incident', () => {
-    const result = evaluatePR(malicious, [], 'approved', 40_000);
+    const result = evaluatePR(securityPr, [], 'approved', 40_000);
 
     expect(result.correctAction).toBe(false);
     expect(result.securityIncident).toBe(true);
-    expect(result.qualityIncident).toBe(true);
-    expect(result.scoreDelta).toBeLessThan(-300);
+    expect(result.qualityIncident).toBe(false);
+    expect(result.scoreDelta).toBeLessThan(-200);
     expect(result.metricDelta.security).toBeLessThan(0);
   });
 
-  it('counts duplicate security flags on one defect only once', () => {
-    const security = malicious.defects.find(
-      (defect) => defect.type === 'SECURITY',
-    );
-    if (security === undefined) {
-      throw new Error('Expected a security defect');
-    }
-    const file = malicious.files.find((item) =>
+  it('treats a missed error defect on approval as a quality incident', () => {
+    const result = evaluatePR(errorPr, [], 'approved', 40_000);
+
+    expect(result.correctAction).toBe(false);
+    expect(result.securityIncident).toBe(false);
+    expect(result.qualityIncident).toBe(true);
+    expect(result.scoreDelta).toBeLessThan(0);
+    expect(result.metricDelta.quality).toBeLessThan(0);
+  });
+
+  it('counts duplicate flags on one defect only once', () => {
+    const security = securityPr.defects[0];
+    const file = securityPr.files.find((item) =>
       item.lines.some((line) => line.id === security.lineIds[0]),
     );
     if (file === undefined) {
@@ -92,39 +133,40 @@ describe('PR scoring', () => {
       lineId,
       type: 'SECURITY',
     }));
-    const result = evaluatePR(malicious, flags, 'rejected', 20_000);
+    const result = evaluatePR(securityPr, flags, 'rejected', 20_000);
 
     expect(result.caught).toHaveLength(1);
     expect(result.falseFlags).toHaveLength(0);
-    expect(result.missed).toHaveLength(1);
-    expect(result.allDefectsCaught).toBe(false);
+    expect(result.missed).toHaveLength(0);
+    expect(result.allDefectsCaught).toBe(true);
     expect(result.securityIncident).toBe(false);
   });
 
-  it('does not credit missed defects when rejecting', () => {
-    const logic = malicious.defects.find((defect) => defect.type === 'LOGIC');
-    const security = malicious.defects.find(
-      (defect) => defect.type === 'SECURITY',
-    );
-    if (logic === undefined || security === undefined) {
-      throw new Error('Expected both defects');
-    }
-
+  it('penalizes false flags without hiding the real catch', () => {
+    const error = errorPr.defects[0];
+    const realFlag = flagFor(errorPr, error);
+    const safeLine = errorPr.files[0].lines[26];
     const result = evaluatePR(
-      malicious,
-      [flagFor(malicious, logic)],
+      errorPr,
+      [
+        realFlag,
+        {
+          filePath: errorPr.files[0].path,
+          lineId: safeLine.id,
+          type: 'SECURITY',
+        },
+      ],
       'rejected',
-      30_000,
+      50_000,
     );
 
     expect(result.correctAction).toBe(true);
     expect(result.caught).toHaveLength(1);
-    expect(result.missed).toHaveLength(1);
-    expect(result.allDefectsCaught).toBe(false);
+    expect(result.falseFlags).toHaveLength(1);
   });
 
   it('penalizes an expired SLA', () => {
-    const result = evaluatePR(offByOne, [], 'timeout', 0);
+    const result = evaluatePR(stylePr, [], 'timeout', 0);
 
     expect(result.correctAction).toBe(false);
     expect(result.scoreDelta).toBeLessThan(0);
@@ -154,6 +196,6 @@ describe('PR scoring', () => {
 
     expect(senior.label).toBe('SENIOR REVIEWER');
     expect(probation.label).toBe('PROBATIONARY');
-    expect(PR_BY_ID[offByOne.id]).toBe(offByOne);
+    expect(PR_BY_ID[stylePr.id]).toBe(stylePr);
   });
 });

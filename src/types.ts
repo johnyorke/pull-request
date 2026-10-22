@@ -1,4 +1,4 @@
-export type ViolationType = 'STYLE' | 'LOGIC' | 'SECURITY';
+export type ViolationType = 'STYLE' | 'ERROR' | 'SECURITY';
 
 export interface Guideline {
   id: string;

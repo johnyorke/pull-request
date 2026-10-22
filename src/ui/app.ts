@@ -19,7 +19,7 @@ import type {
   ViolationType,
 } from '../types';
 
-const TYPE_ORDER: ViolationType[] = ['STYLE', 'LOGIC', 'SECURITY'];
+const TYPE_ORDER: ViolationType[] = ['STYLE', 'ERROR', 'SECURITY'];
 
 const KEYWORDS = new Set([
   'as',
@@ -192,7 +192,7 @@ function metricBar(label: string, value: number): string {
 function controlRows(): string {
   const controls: Array<[string, string]> = [
     ['↑ / ↓  ·  J / K', 'Move line cursor'],
-    ['S  ·  L  ·  X', 'Flag style / logic / security'],
+    ['S  ·  E  ·  X', 'Flag style / error / security'],
     ['A  /  R', 'Approve / request changes'],
     ['G', 'Open engineering guidelines'],
     ['1 / 2 / 3  ·  TAB', 'Switch active PR'],
@@ -292,7 +292,7 @@ export class App {
     return `
       <main class="title-screen">
         <div class="title-topline">
-          <span>NEXUS DYNAMICS / INTERNAL SYSTEMS</span>
+          <span>SOLE CORP / INTERNAL SYSTEMS</span>
           <span class="blink">▮</span>
           <span>TERMINAL 09-C</span>
         </div>
@@ -377,7 +377,7 @@ export class App {
     return `
       <header class="hud">
         <div class="brand-block">
-          <div class="brand">NEXUS<span>//</span>ENG-REVIEW</div>
+          <div class="brand">SOLE CORP<span>//</span>ENG-REVIEW</div>
           <div class="hud-sub">SHIFT 01 · T+${formatClock(state.elapsedMs)} · QUEUE ${
             PULL_REQUESTS.filter(
               (pr) => state.prs[pr.id].status === 'available',
@@ -666,14 +666,14 @@ export class App {
           FINDINGS <span class="count-badge">${runtime.flags.length}</span>
         </div>
         <div class="finding-list">
-          ${findings.length > 0 ? findings : '<div class="empty-copy">No violations flagged. Use S / L / X on a line to cite a rule.</div>'}
+          ${findings.length > 0 ? findings : '<div class="empty-copy">No violations flagged. Use S / E / X on a line to cite a rule.</div>'}
         </div>
         <div class="finding-help">
           <button class="flag-action type-style" data-action="flag" data-flag-type="STYLE" title="Flag current line as a style violation">
             <kbd>S</kbd> STYLE
           </button>
-          <button class="flag-action type-logic" data-action="flag" data-flag-type="LOGIC" title="Flag current line as a logic violation">
-            <kbd>L</kbd> LOGIC
+          <button class="flag-action type-error" data-action="flag" data-flag-type="ERROR" title="Flag current line as an error">
+            <kbd>E</kbd> ERROR
           </button>
           <button class="flag-action type-security" data-action="flag" data-flag-type="SECURITY" title="Flag current line as a security violation">
             <kbd>X</kbd> SECURITY
@@ -737,7 +737,7 @@ export class App {
         <div class="log-strip" aria-live="polite">${logs}</div>
         <div class="status-hints">
           <span>↑↓ MOVE</span>
-          <span>S/L/X FLAG</span>
+          <span>S/E/X FLAG</span>
           <span>A APPROVE</span>
           <span>R REJECT</span>
           <span>G RULES</span>
@@ -782,7 +782,7 @@ export class App {
         <section class="modal guidelines-modal">
           <div class="modal-head">
             <div>
-              <div class="eyebrow">NEXUS ENGINEERING / HANDBOOK v4.2</div>
+              <div class="eyebrow">SOLE CORP ENGINEERING / HANDBOOK v1.0</div>
               <h2 id="guidelines-title">REVIEW GUIDELINES</h2>
             </div>
             <button class="btn btn-quiet" data-action="close-guidelines">
@@ -792,7 +792,7 @@ export class App {
           <div class="guideline-grid">${groups}</div>
           <div class="modal-foot">
             ${timerNote}
-            <span>Cite any line with <kbd>S</kbd> / <kbd>L</kbd> / <kbd>X</kbd>.</span>
+            <span>Cite any line with <kbd>S</kbd> / <kbd>E</kbd> / <kbd>X</kbd>.</span>
           </div>
         </section>
       </div>
@@ -1189,7 +1189,7 @@ export class App {
       }
       case 'flag': {
         const type = trigger.dataset.flagType;
-        if (type === 'STYLE' || type === 'LOGIC' || type === 'SECURITY') {
+        if (type === 'STYLE' || type === 'ERROR' || type === 'SECURITY') {
           this.game.toggleFlag(type);
         }
         break;
@@ -1312,7 +1312,7 @@ export class App {
 
     if (
       event.repeat &&
-      ['a', 'r', 's', 'l', 'x', 'g', 'p', '?', '[', ']', 'tab', '1', '2', '3'].includes(
+      ['a', 'r', 's', 'e', 'x', 'g', 'p', '?', '[', ']', 'tab', '1', '2', '3'].includes(
         lower,
       )
     ) {
@@ -1388,9 +1388,9 @@ export class App {
         event.preventDefault();
         this.game.toggleFlag('STYLE');
         break;
-      case 'l':
+      case 'e':
         event.preventDefault();
-        this.game.toggleFlag('LOGIC');
+        this.game.toggleFlag('ERROR');
         break;
       case 'x':
         event.preventDefault();

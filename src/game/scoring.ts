@@ -28,7 +28,7 @@ function defectMetric(defect: Defect): { key: keyof Metrics; amount: number } {
   if (defect.type === 'SECURITY') {
     return { key: 'security', amount: 4 };
   }
-  if (defect.type === 'LOGIC') {
+  if (defect.type === 'ERROR') {
     return { key: 'quality', amount: 3 };
   }
   return { key: 'quality', amount: 1 };
