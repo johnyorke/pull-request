@@ -299,11 +299,11 @@ export class App {
 
         <section class="title-panel panel">
           <div class="eyebrow">HUMAN-IN-THE-LOOP REVIEW PROGRAM</div>
-          <pre class="ascii-logo" aria-label="Pull Request"> ____  _   _ _      _      ____  _____ ____  ___ ____   _  _____ _____
-|  _ \\| | | | |    | |    |  _ \\| ____|  _ \\|_ _/ ___| / \\|_   _| ____|
-| |_) | | | | |    | |    | |_) |  _| | |_) || | |    / _ \\ | | |  _|
-|  __/| |_| | |___ | |___ |  _ &lt;| |___|  _ &lt; | | |___/ ___ \\| | | |___
-|_|    \\___/|_____|_____||_| \\_\\_____|_| \\_\\___\\____/_/   \\_\\_| |_____|</pre>
+          <pre class="ascii-logo" aria-label="Pull Request">  ____  _   _ _     _       ____  _____ ___  _   _ _____ ____ _____ 
+ |  _ \\| | | | |   | |     |  _ \\| ____/ _ \\| | | | ____/ ___|_   _|
+ | |_) | | | | |   | |     | |_) |  _|| | | | | | |  _| \\___ \\ | |  
+ |  __/| |_| | |___| |___  |  _ &lt;| |__| |_| | |_| | |___ ___) || |  
+ |_|    \\___/|_____|_____| |_| \\_\\_____\\__\\_\\\\___/|_____|____/ |_|  </pre>
           <p class="tagline">AI writes the code. You decide what ships.</p>
 
           <div class="welcome-memo">
