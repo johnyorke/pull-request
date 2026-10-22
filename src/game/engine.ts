@@ -71,7 +71,10 @@ export class ReviewGame {
   startShift(): void {
     this.state = createInitialState();
     this.state.screen = 'shift';
-    this.addLog('REVIEW TERMINAL ONLINE. Three PRs inbound.', 'info');
+    this.addLog(
+      `REVIEW TERMINAL ONLINE. ${PULL_REQUESTS.length} PRs inbound.`,
+      'info',
+    );
     this.advanceWorld();
     this.startLoop();
     this.emit('render');

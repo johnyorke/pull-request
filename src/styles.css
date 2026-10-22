@@ -1335,6 +1335,34 @@ kbd {
   letter-spacing: 0.13em;
 }
 
+.title-screen {
+  height: 100dvh;
+  justify-content: center;
+  justify-content: safe center;
+  scrollbar-color: var(--green-faint) transparent;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+
+.title-screen::-webkit-scrollbar {
+  width: 10px;
+}
+
+.title-screen::-webkit-scrollbar-track {
+  border-left: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.title-screen::-webkit-scrollbar-thumb {
+  border: 2px solid var(--bg);
+  border-radius: 999px;
+  background: var(--green-faint);
+}
+
+.title-screen::-webkit-scrollbar-thumb:hover {
+  background: var(--green-dim);
+}
+
 .title-panel {
   min-width: 0;
   padding: clamp(20px, 3.5vw, 42px);
@@ -1358,39 +1386,65 @@ kbd {
   letter-spacing: 0.025em;
 }
 
-.briefing-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+.welcome-memo {
   padding: 17px 0;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
+  color: var(--green-dim);
+  font-size: 10px;
+  line-height: 1.65;
 }
 
-.briefing-item {
+.memo-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-bottom: 14px;
+  color: var(--green-faint);
+  font-size: 8px;
+  letter-spacing: 0.13em;
+}
+
+.welcome-memo p {
+  margin: 0 0 10px;
+}
+
+.welcome-memo p:last-child {
+  margin-bottom: 0;
+}
+
+.memo-salutation {
+  margin: 0 0 10px;
+  color: var(--green-bright);
+  font-size: clamp(12px, 1.5vw, 16px);
+  letter-spacing: 0.02em;
+}
+
+.memo-list {
+  display: grid;
+  gap: 7px;
+  margin: 12px 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.memo-list li {
   display: flex;
   gap: 10px;
+  align-items: baseline;
 }
 
-.briefing-number {
+.memo-number {
   color: var(--green-faint);
-  font-size: 20px;
+  font-size: 16px;
   line-height: 1;
 }
 
-.briefing-item strong {
-  display: block;
-  margin-bottom: 4px;
+.memo-sign {
+  margin-top: 15px !important;
   color: var(--green);
   font-size: 9px;
-  letter-spacing: 0.11em;
-}
-
-.briefing-item p {
-  margin: 0;
-  color: var(--green-dim);
-  font-size: 9px;
-  line-height: 1.55;
+  letter-spacing: 0.08em;
 }
 
 .title-actions {
@@ -1657,7 +1711,6 @@ kbd {
     justify-content: flex-start;
   }
 
-  .briefing-grid,
   .guideline-grid,
   .postmortem-grid {
     grid-template-columns: 1fr;

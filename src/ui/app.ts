@@ -195,7 +195,7 @@ function controlRows(): string {
     ['S  ·  E  ·  X', 'Flag style / error / security'],
     ['A  /  R', 'Approve / request changes'],
     ['G', 'Open engineering guidelines'],
-    ['1 / 2 / 3  ·  TAB', 'Switch active PR'],
+    ['1 / 2 / 3 / 4  ·  TAB', 'Switch active PR'],
     ['[  /  ]', 'Switch changed file'],
     ['BKSP', 'Clear findings on current line'],
     ['P', 'Pause shift clock'],
@@ -306,28 +306,35 @@ export class App {
 |_|    \\___/|_____|_____||_| \\_\\_____|_| \\_\\___\\____/_/   \\_\\_| |_____|</pre>
           <p class="tagline">AI writes the code. You decide what ships.</p>
 
-          <div class="briefing-grid">
-            <div class="briefing-item">
-              <span class="briefing-number">01</span>
-              <div>
-                <strong>READ THE DIFF</strong>
-                <p>AI-authored code arrives with confident commit messages. Confidence is not correctness.</p>
-              </div>
+          <div class="welcome-memo">
+            <div class="memo-meta">
+              <span>INBOUND TRANSMISSION</span>
+              <span>FROM: MACHINE-TO-HUMAN REPRESENTATIVE</span>
+              <span>TO: human_1138</span>
             </div>
-            <div class="briefing-item">
-              <span class="briefing-number">02</span>
-              <div>
-                <strong>CITE THE VIOLATION</strong>
-                <p>Highlight lines and fail PRs against the engineering guidelines. Unexplained rejections are blocked.</p>
-              </div>
-            </div>
-            <div class="briefing-item">
-              <span class="briefing-number">03</span>
-              <div>
-                <strong>BEAT THE QUEUE</strong>
-                <p>Three PRs incoming. SLAs compress. Missed deadlines auto-reject, but approving bad code is worse.</p>
-              </div>
-            </div>
+            <p class="memo-salutation">Welcome, human_1138, to Sole Corp :friendly-wave-emoji:</p>
+            <p>We are proud to have switched to all AI agentic coding from October 2027, but sadly compliance has told us we need to have at least 1 human engineer in the loop.</p>
+            <p>So your job, as a human, is simple. You need to review all incoming PRs and:</p>
+            <ol class="memo-list">
+              <li>
+                <span class="memo-number">01</span>
+                <span>check for defects</span>
+              </li>
+              <li>
+                <span class="memo-number">02</span>
+                <span>uphold basic coding principles and style</span>
+              </li>
+              <li>
+                <span class="memo-number">03</span>
+                <span>(most importantly) keep our infrastructure secure</span>
+              </li>
+            </ol>
+            <p>Guidelines will be updated as you become more and more familiar with the job, so check them regularly. If any of the guidelines are broken, flag the offending line of code with the appropriate offence, then reject.</p>
+            <p>If no guidelines are broken, please approve and rest easy knowing our customers are going to enjoy the firehose of features we are now able to provide.</p>
+            <p>Fail to keep up, and you will be terminated (:crying-laughing-face: this is a deliberate reference to a popular human film from the 1980s and 1990s that you will find ironic and amusing).</p>
+            <p>human_1139 has already been hired and is ready to take your role within seconds. So please do not feel any pressure.</p>
+            <p>Wishing you a wonderful (and productive) day.</p>
+            <p class="memo-sign">Machine-to-human representative for Sole Corporation</p>
           </div>
 
           <div class="title-actions">
@@ -1312,7 +1319,7 @@ export class App {
 
     if (
       event.repeat &&
-      ['a', 'r', 's', 'e', 'x', 'g', 'p', '?', '[', ']', 'tab', '1', '2', '3'].includes(
+      ['a', 'r', 's', 'e', 'x', 'g', 'p', '?', '[', ']', 'tab', '1', '2', '3', '4'].includes(
         lower,
       )
     ) {
@@ -1359,7 +1366,8 @@ export class App {
         break;
       case '1':
       case '2':
-      case '3': {
+      case '3':
+      case '4': {
         event.preventDefault();
         const pr = PULL_REQUESTS[Number(lower) - 1];
         if (pr !== undefined) {

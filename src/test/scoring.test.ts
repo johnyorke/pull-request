@@ -3,7 +3,7 @@ import { PR_BY_ID, PULL_REQUESTS } from '../data/levels';
 import { applyMetrics, evaluatePR, rankFor } from '../game/scoring';
 import type { Defect, PullRequest, ReviewFlag, ViolationType } from '../types';
 
-const [stylePr, securityPr, errorPr] = PULL_REQUESTS;
+const [stylePr, cleanLevelPr, securityPr, errorPr] = PULL_REQUESTS;
 
 const cleanPr: PullRequest = {
   id: 'pr-clean',
@@ -51,8 +51,8 @@ function flagFor(
 }
 
 describe('PR scoring', () => {
-  it('rewards rejecting each PR on its single guideline', () => {
-    for (const pr of PULL_REQUESTS) {
+  it('rewards rejecting each defective PR on its guideline', () => {
+    for (const pr of PULL_REQUESTS.filter((item) => item.defects.length > 0)) {
       const result = evaluatePR(
         pr,
         [flagFor(pr, pr.defects[0])],
@@ -71,6 +71,16 @@ describe('PR scoring', () => {
 
   it('rewards a clean approval without incidents', () => {
     const result = evaluatePR(cleanPr, [], 'approved', 60_000);
+
+    expect(result.correctAction).toBe(true);
+    expect(result.clean).toBe(true);
+    expect(result.securityIncident).toBe(false);
+    expect(result.qualityIncident).toBe(false);
+    expect(result.scoreDelta).toBeGreaterThan(200);
+  });
+
+  it('approves the clean level PR without findings', () => {
+    const result = evaluatePR(cleanLevelPr, [], 'approved', 60_000);
 
     expect(result.correctAction).toBe(true);
     expect(result.clean).toBe(true);

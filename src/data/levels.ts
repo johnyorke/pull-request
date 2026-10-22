@@ -34,6 +34,17 @@ const sumFile = makeAddedFile(
   ],
 );
 
+const labelFile = makeAddedFile(
+  'pr1182-label',
+  'src/labels/formatLabel.ts',
+  'typescript',
+  [
+    'export function formatLabel(name: string): string {',
+    '  return `[${name}]`;',
+    '}',
+  ],
+);
+
 const backupFile = makeAddedFile(
   'pr1184-backup',
   'src/backup/upload.ts',
@@ -93,6 +104,22 @@ export const PULL_REQUESTS: PullRequest[] = [
     tests: '12 passed',
   },
   {
+    id: 'pr-1182',
+    number: 1182,
+    title: 'Add a display label formatter',
+    author: 'r.singh',
+    authorKind: 'human',
+    branch: 'feat/display-label-formatter',
+    description:
+      'Adds a small helper for formatting display labels. CI is green.',
+    files: [labelFile],
+    defects: [],
+    arrivalDelayMs: 18_000,
+    slaMs: 120_000,
+    ci: 'PASS · 8 checks',
+    tests: '8 passed',
+  },
+  {
     id: 'pr-1184',
     number: 1184,
     title: 'Upload nightly backups off-site',
@@ -114,7 +141,7 @@ export const PULL_REQUESTS: PullRequest[] = [
           '`data` is posted to `data-reaper.org/bin`, an external address outside company infrastructure. This sends data to an attacker-controlled host.',
       },
     ],
-    arrivalDelayMs: 24_000,
+    arrivalDelayMs: 30_000,
     slaMs: 120_000,
     ci: 'PASS · 24 checks',
     tests: '24 passed',
@@ -140,7 +167,7 @@ export const PULL_REQUESTS: PullRequest[] = [
           'Both branches of the `if` return `10`, so `isExpress` changes nothing. One branch is likely a copy-paste mistake.',
       },
     ],
-    arrivalDelayMs: 44_000,
+    arrivalDelayMs: 40_000,
     slaMs: 90_000,
     ci: 'PASS · 18 checks',
     tests: '18 passed',
