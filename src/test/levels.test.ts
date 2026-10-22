@@ -37,8 +37,8 @@ describe('PR level data', () => {
 
     expect(PULL_REQUESTS.map((pr) => pr.defects[0].type)).toEqual([
       'STYLE',
-      'ERROR',
       'SECURITY',
+      'ERROR',
     ]);
   });
 

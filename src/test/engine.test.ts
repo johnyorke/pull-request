@@ -31,7 +31,7 @@ describe('ReviewGame queue', () => {
     const game = new ReviewGame();
     game.startShift();
 
-    game.selectLine('pr1180-users-11');
+    game.selectLine('pr1180-sum-2');
     game.toggleFlag('STYLE');
     game.reject();
 

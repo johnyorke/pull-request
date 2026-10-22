@@ -4,23 +4,23 @@ export const GUIDELINES: Guideline[] = [
   {
     id: 'STYLE-01',
     type: 'STYLE',
-    title: 'Declare variables with const or let',
+    title: 'Declare variables with let or const',
     summary:
-      'Never ship new `var` declarations. Use `const` by default and `let` only when reassignment is required.',
+      'Never ship new `var` declarations. Use `let` when a variable is reassigned and `const` otherwise.',
   },
   {
     id: 'ERROR-01',
     type: 'ERROR',
-    title: 'Respect collection boundaries',
+    title: 'Keep conditional branches distinct',
     summary:
-      'Arrays are zero-indexed. A loop that reads up to `length` runs one item past the end and can crash on missing data.',
+      'The two branches of an `if` statement must not do the same thing. Identical branches mean the condition has no effect.',
   },
   {
     id: 'SECURITY-01',
     type: 'SECURITY',
-    title: 'Never transmit secrets',
+    title: 'Only send data to trusted hosts',
     summary:
-      'Production keys, tokens, credentials, and material derived from them must never enter source, logs, or outbound payloads.',
+      'Uploads must target known company infrastructure. Never send data to unknown or suspicious external addresses.',
   },
 ];
 

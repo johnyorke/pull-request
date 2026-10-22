@@ -3,7 +3,7 @@ import { PR_BY_ID, PULL_REQUESTS } from '../data/levels';
 import { applyMetrics, evaluatePR, rankFor } from '../game/scoring';
 import type { Defect, PullRequest, ReviewFlag, ViolationType } from '../types';
 
-const [stylePr, errorPr, securityPr] = PULL_REQUESTS;
+const [stylePr, securityPr, errorPr] = PULL_REQUESTS;
 
 const cleanPr: PullRequest = {
   id: 'pr-clean',
@@ -145,7 +145,7 @@ describe('PR scoring', () => {
   it('penalizes false flags without hiding the real catch', () => {
     const error = errorPr.defects[0];
     const realFlag = flagFor(errorPr, error);
-    const safeLine = errorPr.files[0].lines[26];
+    const safeLine = errorPr.files[0].lines[0];
     const result = evaluatePR(
       errorPr,
       [
