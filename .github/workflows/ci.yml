@@ -17,3 +17,13 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+
+  notify-blog:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger blog deploy
+        env:
+          GH_TOKEN: ${{ secrets.BLOG_DISPATCH_TOKEN }}
+        run: gh api repos/johnyorke/blog/dispatches --method POST -f event_type=pull-request-updated
