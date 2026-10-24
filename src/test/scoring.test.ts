@@ -55,13 +55,13 @@ describe('PR scoring', () => {
     for (const pr of PULL_REQUESTS.filter((item) => item.defects.length > 0)) {
       const result = evaluatePR(
         pr,
-        [flagFor(pr, pr.defects[0])],
+        pr.defects.map((defect) => flagFor(pr, defect)),
         'rejected',
         90_000,
       );
 
       expect(result.correctAction).toBe(true);
-      expect(result.caught).toHaveLength(1);
+      expect(result.caught).toHaveLength(pr.defects.length);
       expect(result.missed).toHaveLength(0);
       expect(result.falseFlags).toHaveLength(0);
       expect(result.allDefectsCaught).toBe(true);

@@ -12,7 +12,7 @@ describe('ReviewGame queue', () => {
   });
 
   it('starts with the first PR and reveals later PRs on schedule', () => {
-    const game = new ReviewGame();
+    const game = new ReviewGame(() => 0.999_999);
     game.startShift();
 
     expect(game.state.screen).toBe('shift');
@@ -34,8 +34,27 @@ describe('ReviewGame queue', () => {
     game.stopLoop();
   });
 
+  it('reshuffles the queue every time a shift starts', () => {
+    let seed = 7;
+    const random = (): number => {
+      seed = (seed * 1_664_525 + 1_013_904_223) >>> 0;
+      return seed / 2 ** 32;
+    };
+    const game = new ReviewGame(random);
+
+    game.startShift();
+    const firstShift = game.pullRequests.map((pr) => pr.id);
+    game.replay();
+    game.startShift();
+    const secondShift = game.pullRequests.map((pr) => pr.id);
+
+    expect(secondShift).not.toEqual(firstShift);
+    expect([...secondShift].sort()).toEqual([...firstShift].sort());
+    game.stopLoop();
+  });
+
   it('resolves a rejection with findings and resumes the queue', () => {
-    const game = new ReviewGame();
+    const game = new ReviewGame(() => 0.999_999);
     game.startShift();
 
     game.selectLine('pr1180-sum-2');
@@ -57,7 +76,7 @@ describe('ReviewGame queue', () => {
   });
 
   it('approves a clean PR with no findings', () => {
-    const game = new ReviewGame();
+    const game = new ReviewGame(() => 0.999_999);
     game.startShift();
 
     vi.advanceTimersByTime(18_200);
@@ -73,20 +92,18 @@ describe('ReviewGame queue', () => {
   });
 
   it('auto-rejects expired PRs and ends the shift', () => {
-    const game = new ReviewGame();
+    const game = new ReviewGame(() => 0.999_999);
     game.startShift();
 
-    vi.advanceTimersByTime(150_200);
+    for (let step = 0; step < 20 && game.state.screen === 'shift'; step += 1) {
+      game.dismissModal();
+      vi.advanceTimersByTime(60_000);
+    }
 
-    expect(game.state.results).toHaveLength(4);
+    expect(game.state.results).toHaveLength(11);
     expect(game.state.results.every((result) => result.verdict === 'timeout')).toBe(
       true,
     );
-    expect(game.state.modal?.type).toBe('verdict');
-    expect(game.state.screen).toBe('shift');
-
-    game.dismissModal();
-
     expect(game.state.screen).toBe('summary');
     expect(game.state.modal).toBeNull();
     expect(game.state.metrics.throughput).toBeLessThan(80);

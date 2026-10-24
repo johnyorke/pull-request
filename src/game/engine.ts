@@ -1,4 +1,4 @@
-import { PULL_REQUESTS, PR_BY_ID } from '../data/levels';
+import { createShift, PULL_REQUESTS } from '../data/levels';
 import type {
   GameState,
   LogTone,
@@ -21,9 +21,11 @@ const STARTING_METRICS: Metrics = {
 
  type EngineEvent = 'render' | 'clock';
 
-function createRuntimes(): Record<string, PRRuntime> {
+function createRuntimes(
+  prs: readonly PullRequest[],
+): Record<string, PRRuntime> {
   return Object.fromEntries(
-    PULL_REQUESTS.map((pr) => [
+    prs.map((pr) => [
       pr.id,
       {
         status: 'waiting',
@@ -40,13 +42,15 @@ function createRuntimes(): Record<string, PRRuntime> {
   );
 }
 
-export function createInitialState(): GameState {
+export function createInitialState(
+  prs: readonly PullRequest[] = PULL_REQUESTS,
+): GameState {
   return {
     screen: 'title',
     elapsedMs: 0,
     paused: false,
     activePrId: null,
-    prs: createRuntimes(),
+    prs: createRuntimes(prs),
     metrics: { ...STARTING_METRICS },
     score: 0,
     results: [],
@@ -58,10 +62,20 @@ export function createInitialState(): GameState {
 }
 
 export class ReviewGame {
-  state: GameState = createInitialState();
+  state: GameState;
+  private shiftPRs: PullRequest[];
   private listeners = new Set<(event: EngineEvent) => void>();
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private lastWallMs = 0;
+
+  constructor(private readonly random: () => number = Math.random) {
+    this.shiftPRs = createShift(this.random);
+    this.state = createInitialState(this.shiftPRs);
+  }
+
+  get pullRequests(): readonly PullRequest[] {
+    return this.shiftPRs;
+  }
 
   subscribe(listener: (event: EngineEvent) => void): () => void {
     this.listeners.add(listener);
@@ -69,10 +83,11 @@ export class ReviewGame {
   }
 
   startShift(): void {
-    this.state = createInitialState();
+    this.shiftPRs = createShift(this.random);
+    this.state = createInitialState(this.shiftPRs);
     this.state.screen = 'shift';
     this.addLog(
-      `REVIEW TERMINAL ONLINE. ${PULL_REQUESTS.length} PRs inbound.`,
+      `REVIEW TERMINAL ONLINE. ${this.shiftPRs.length} PRs inbound.`,
       'info',
     );
     this.advanceWorld();
@@ -119,7 +134,7 @@ export class ReviewGame {
   private advanceWorld(): boolean {
     let structural = false;
 
-    for (const pr of PULL_REQUESTS) {
+    for (const pr of this.shiftPRs) {
       const runtime = this.state.prs[pr.id];
       if (
         runtime.status === 'waiting' &&
@@ -139,7 +154,7 @@ export class ReviewGame {
       }
     }
 
-    for (const pr of PULL_REQUESTS) {
+    for (const pr of this.shiftPRs) {
       const runtime = this.state.prs[pr.id];
       if (
         runtime.status === 'available' &&
@@ -218,7 +233,7 @@ export class ReviewGame {
   }
 
   private firstAvailable(): PullRequest | null {
-    for (const pr of PULL_REQUESTS) {
+    for (const pr of this.shiftPRs) {
       if (this.state.prs[pr.id].status === 'available') {
         return pr;
       }
@@ -227,7 +242,7 @@ export class ReviewGame {
   }
 
   private allResolved(): boolean {
-    return PULL_REQUESTS.every(
+    return this.shiftPRs.every(
       (pr) => this.state.prs[pr.id].status === 'resolved',
     );
   }
@@ -260,7 +275,8 @@ export class ReviewGame {
       return;
     }
 
-    const pr = PR_BY_ID[this.state.modal.prId];
+    const prId = this.state.modal.prId;
+    const pr = this.shiftPRs.find((item) => item.id === prId);
     this.state.modal = null;
     if (pr === undefined) {
       return;
@@ -285,7 +301,7 @@ export class ReviewGame {
     const runtime = this.state.prs[active.id];
     if (runtime.flags.length === 0) {
       this.addLog(
-        'Rejection blocked: flag at least one line with [S], [L], or [X].',
+        'Rejection blocked: flag at least one line with [S], [E], or [C].',
         'warning',
       );
       this.emit('render');
@@ -332,7 +348,7 @@ export class ReviewGame {
   }
 
   cyclePR(direction: number): void {
-    const available = PULL_REQUESTS.filter(
+    const available = this.shiftPRs.filter(
       (pr) => this.state.prs[pr.id].status === 'available',
     );
     if (available.length < 2) {
@@ -538,7 +554,7 @@ export class ReviewGame {
 
   replay(): void {
     this.stopLoop();
-    this.state = createInitialState();
+    this.state = createInitialState(this.shiftPRs);
     this.emit('render');
   }
 
@@ -557,7 +573,9 @@ export class ReviewGame {
     if (this.state.activePrId === null) {
       return null;
     }
-    return PR_BY_ID[this.state.activePrId] ?? null;
+    return (
+      this.shiftPRs.find((pr) => pr.id === this.state.activePrId) ?? null
+    );
   }
 
   private canReview(): boolean {

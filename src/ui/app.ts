@@ -4,7 +4,7 @@ import {
   TYPE_LABEL,
   TYPE_SHORT,
 } from '../data/guidelines';
-import { PULL_REQUESTS, PR_BY_ID } from '../data/levels';
+import { PR_BY_ID } from '../data/levels';
 import { formatClock, remainingFor, ReviewGame } from '../game/engine';
 import { rankFor } from '../game/scoring';
 import type {
@@ -192,10 +192,10 @@ function metricBar(label: string, value: number): string {
 function controlRows(): string {
   const controls: Array<[string, string]> = [
     ['↑ / ↓  ·  J / K', 'Move line cursor'],
-    ['S  ·  E  ·  X', 'Flag style / error / security'],
+    ['S  ·  E  ·  C', 'Flag style / error / security'],
     ['A  /  R', 'Approve / request changes'],
     ['G', 'Open engineering guidelines'],
-    ['1 / 2 / 3 / 4  ·  TAB', 'Switch active PR'],
+    ['1–9 / 0  ·  TAB', 'Switch active PR'],
     ['[  /  ]', 'Switch changed file'],
     ['BKSP', 'Clear findings on current line'],
     ['P', 'Pause shift clock'],
@@ -386,7 +386,7 @@ export class App {
         <div class="brand-block">
           <div class="brand">SOLE CORP<span>//</span>ENG-REVIEW</div>
           <div class="hud-sub">SHIFT 01 · T+${formatClock(state.elapsedMs)} · QUEUE ${
-            PULL_REQUESTS.filter(
+            this.game.pullRequests.filter(
               (pr) => state.prs[pr.id].status === 'available',
             ).length
           } OPEN</div>
@@ -405,7 +405,7 @@ export class App {
   }
 
   private renderQueue(state: GameState): string {
-    const tabs = PULL_REQUESTS.map((pr, index) => {
+    const tabs = this.game.pullRequests.map((pr, index) => {
       const runtime = state.prs[pr.id];
       const active = state.activePrId === pr.id;
       const disabled = runtime.status !== 'available';
@@ -673,7 +673,7 @@ export class App {
           FINDINGS <span class="count-badge">${runtime.flags.length}</span>
         </div>
         <div class="finding-list">
-          ${findings.length > 0 ? findings : '<div class="empty-copy">No violations flagged. Use S / E / X on a line to cite a rule.</div>'}
+          ${findings.length > 0 ? findings : '<div class="empty-copy">No violations flagged. Use S / E / C on a line to cite a rule.</div>'}
         </div>
         <div class="finding-help">
           <button class="flag-action type-style" data-action="flag" data-flag-type="STYLE" title="Flag current line as a style violation">
@@ -683,7 +683,7 @@ export class App {
             <kbd>E</kbd> ERROR
           </button>
           <button class="flag-action type-security" data-action="flag" data-flag-type="SECURITY" title="Flag current line as a security violation">
-            <kbd>X</kbd> SECURITY
+            <kbd>C</kbd> SECURITY
           </button>
           <button class="flag-action" data-action="clear-line" title="Clear findings on current line">
             <kbd>BKSP</kbd> CLEAR
@@ -694,7 +694,7 @@ export class App {
   }
 
   private renderEmptyReview(state: GameState): string {
-    const waiting = PULL_REQUESTS.filter(
+    const waiting = this.game.pullRequests.filter(
       (pr) => state.prs[pr.id].status === 'waiting',
     );
     return `
@@ -718,7 +718,7 @@ export class App {
       <section class="panel side-panel">
         <div class="panel-title">QUEUE</div>
         <div class="empty-copy">${
-          PULL_REQUESTS.filter(
+          this.game.pullRequests.filter(
             (pr) => state.prs[pr.id].status === 'waiting',
           ).length
         } inbound.</div>
@@ -744,7 +744,7 @@ export class App {
         <div class="log-strip" aria-live="polite">${logs}</div>
         <div class="status-hints">
           <span>↑↓ MOVE</span>
-          <span>S/E/X FLAG</span>
+          <span>S/E/C FLAG</span>
           <span>A APPROVE</span>
           <span>R REJECT</span>
           <span>G RULES</span>
@@ -799,7 +799,7 @@ export class App {
           <div class="guideline-grid">${groups}</div>
           <div class="modal-foot">
             ${timerNote}
-            <span>Cite any line with <kbd>S</kbd> / <kbd>E</kbd> / <kbd>X</kbd>.</span>
+            <span>Cite any line with <kbd>S</kbd> / <kbd>E</kbd> / <kbd>C</kbd>.</span>
           </div>
         </section>
       </div>
@@ -1017,7 +1017,7 @@ export class App {
       (result) => result.securityIncident || result.qualityIncident,
     ).length;
 
-    const rows = PULL_REQUESTS.map((pr) => {
+    const rows = this.game.pullRequests.map((pr) => {
       const result = state.results.find((item) => item.prId === pr.id);
       if (result === undefined) {
         return '';
@@ -1104,7 +1104,7 @@ export class App {
       return;
     }
 
-    for (const pr of PULL_REQUESTS) {
+    for (const pr of this.game.pullRequests) {
       const runtime = state.prs[pr.id];
       const queueClock = this.root.querySelector<HTMLElement>(
         `[data-clock="${pr.id}"]`,
@@ -1319,9 +1319,20 @@ export class App {
 
     if (
       event.repeat &&
-      ['a', 'r', 's', 'e', 'x', 'g', 'p', '?', '[', ']', 'tab', '1', '2', '3', '4'].includes(
-        lower,
-      )
+      ([
+        'a',
+        'r',
+        's',
+        'e',
+        'c',
+        'g',
+        'p',
+        '?',
+        '[',
+        ']',
+        'tab',
+      ].includes(lower) ||
+        /^[0-9]$/.test(lower))
     ) {
       return;
     }
@@ -1367,9 +1378,16 @@ export class App {
       case '1':
       case '2':
       case '3':
-      case '4': {
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+      case '0': {
         event.preventDefault();
-        const pr = PULL_REQUESTS[Number(lower) - 1];
+        const position = lower === '0' ? 10 : Number(lower);
+        const pr = this.game.pullRequests[position - 1];
         if (pr !== undefined) {
           const runtime = state.prs[pr.id];
           if (runtime.status === 'available') {
@@ -1400,7 +1418,7 @@ export class App {
         event.preventDefault();
         this.game.toggleFlag('ERROR');
         break;
-      case 'x':
+      case 'c':
         event.preventDefault();
         this.game.toggleFlag('SECURITY');
         break;
