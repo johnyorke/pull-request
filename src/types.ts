@@ -45,7 +45,6 @@ export interface PullRequest {
   description: string;
   files: DiffFile[];
   defects: Defect[];
-  arrivalDelayMs: number;
   slaMs: number;
   ci: string;
   tests: string;
@@ -57,7 +56,7 @@ export interface ReviewFlag {
   type: ViolationType;
 }
 
-export type PRStatus = 'waiting' | 'available' | 'resolved';
+export type PRStatus = 'available' | 'resolved';
 export type Verdict = 'approved' | 'rejected' | 'timeout';
 
 export interface Metrics {
@@ -87,8 +86,9 @@ export interface PRResult {
 
 export interface PRRuntime {
   status: PRStatus;
-  arrivedAtMs: number | null;
+  activatedAtMs: number | null;
   deadlineAtMs: number | null;
+  remainingMs: number;
   resolvedAtMs: number | null;
   verdict: Verdict | null;
   flags: ReviewFlag[];

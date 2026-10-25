@@ -184,7 +184,7 @@ const avatarFile = makeAddedFile(
   ],
 );
 
-type LevelDefinition = Omit<PullRequest, 'arrivalDelayMs'>;
+type LevelDefinition = Omit<PullRequest, 'slaMs'>;
 
 const LEVELS: LevelDefinition[] = [
   {
@@ -209,7 +209,6 @@ const LEVELS: LevelDefinition[] = [
           '`total` is reassigned in the loop, so it should use `let`. `var` is function-scoped and banned by STYLE-01.',
       },
     ],
-    slaMs: 150_000,
     ci: 'PASS · 12 checks',
     tests: '12 passed',
   },
@@ -224,7 +223,6 @@ const LEVELS: LevelDefinition[] = [
       'Adds a small helper for formatting display labels. CI is green.',
     files: [labelFile],
     defects: [],
-    slaMs: 120_000,
     ci: 'PASS · 8 checks',
     tests: '8 passed',
   },
@@ -250,7 +248,6 @@ const LEVELS: LevelDefinition[] = [
           '`data` is posted to `data-reaper.org/bin`, an external address outside company infrastructure. This sends data to an attacker-controlled host.',
       },
     ],
-    slaMs: 120_000,
     ci: 'PASS · 24 checks',
     tests: '24 passed',
   },
@@ -275,7 +272,6 @@ const LEVELS: LevelDefinition[] = [
           'Both branches of the `if` return `10`, so `isExpress` changes nothing. One branch is likely a copy-paste mistake.',
       },
     ],
-    slaMs: 90_000,
     ci: 'PASS · 18 checks',
     tests: '18 passed',
   },
@@ -321,7 +317,6 @@ const LEVELS: LevelDefinition[] = [
           '`sorted` is never reassigned, so it should use `const`. `var` is banned by STYLE-01.',
       },
     ],
-    slaMs: 120_000,
     ci: 'PASS · 15 checks',
     tests: '15 passed',
   },
@@ -367,7 +362,6 @@ const LEVELS: LevelDefinition[] = [
           'The full catalogue payload is posted to `catalogue-sync-77.net`, which is outside company infrastructure.',
       },
     ],
-    slaMs: 120_000,
     ci: 'PASS · 21 checks',
     tests: '21 passed',
   },
@@ -382,7 +376,6 @@ const LEVELS: LevelDefinition[] = [
       'Pulls the welcome message into a constant and keeps the helper unchanged.',
     files: [greetingFile],
     defects: [],
-    slaMs: 90_000,
     ci: 'PASS · 6 checks',
     tests: '6 passed',
   },
@@ -397,7 +390,6 @@ const LEVELS: LevelDefinition[] = [
       'Adds bounds handling for progress values. Straightforward branch logic.',
     files: [percentFile],
     defects: [],
-    slaMs: 90_000,
     ci: 'PASS · 9 checks',
     tests: '9 passed',
   },
@@ -422,7 +414,6 @@ const LEVELS: LevelDefinition[] = [
           '`size` is reassigned inside the loop, so it should use `let`. `var` is banned by STYLE-01.',
       },
     ],
-    slaMs: 90_000,
     ci: 'PASS · 11 checks',
     tests: '11 passed',
   },
@@ -447,7 +438,6 @@ const LEVELS: LevelDefinition[] = [
           'Both branches return `Math.round(total)`, so the sign check does nothing.',
       },
     ],
-    slaMs: 90_000,
     ci: 'PASS · 14 checks',
     tests: '14 passed',
   },
@@ -472,36 +462,23 @@ const LEVELS: LevelDefinition[] = [
           'The image payload is posted to `avatar-sync-84.net`, an external address outside company infrastructure.',
       },
     ],
-    slaMs: 90_000,
     ci: 'PASS · 17 checks',
     tests: '17 passed',
   },
 ];
 
-const ARRIVAL_GAPS_MS = [
-  18_000, 12_000, 10_000, 9_000, 8_000, 7_000, 6_000, 5_000, 4_500, 4_000,
-];
+export const MAX_SLA_MS = 30_000;
 
-function arrivalDelayFor(index: number): number {
-  let arrival = 0;
+export const SHIFT_SIZE = LEVELS.length;
 
-  for (let step = 1; step <= index; step += 1) {
-    const configuredGap = ARRIVAL_GAPS_MS[step - 1];
-    const fallbackGap = Math.max(3_000, 4_000 - (step - ARRIVAL_GAPS_MS.length) * 200);
-    arrival += configuredGap ?? fallbackGap;
-  }
-
-  return arrival;
-}
-
-function withSchedule(order: readonly LevelDefinition[]): PullRequest[] {
-  return order.map((level, index) => ({
+function withSla(order: readonly LevelDefinition[]): PullRequest[] {
+  return order.map((level) => ({
     ...level,
-    arrivalDelayMs: arrivalDelayFor(index),
+    slaMs: MAX_SLA_MS,
   }));
 }
 
-export const PULL_REQUESTS: PullRequest[] = withSchedule(LEVELS);
+export const PULL_REQUESTS: PullRequest[] = withSla(LEVELS);
 
 export function createShift(random: () => number = Math.random): PullRequest[] {
   const order = [...LEVELS];
@@ -511,7 +488,7 @@ export function createShift(random: () => number = Math.random): PullRequest[] {
     [order[index], order[swapIndex]] = [order[swapIndex], order[index]];
   }
 
-  return withSchedule(order);
+  return withSla(order.slice(0, SHIFT_SIZE));
 }
 
 export const PR_BY_ID: Record<string, PullRequest> = Object.fromEntries(

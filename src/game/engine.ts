@@ -1,4 +1,4 @@
-import { createShift, PULL_REQUESTS } from '../data/levels';
+import { createShift, MAX_SLA_MS, PULL_REQUESTS } from '../data/levels';
 import type {
   GameState,
   LogTone,
@@ -13,6 +13,9 @@ import type {
 import { applyMetrics, evaluatePR } from './scoring';
 
 const TICK_MS = 200;
+
+export const CRITICAL_SLA_MS = 10_000;
+
 const STARTING_METRICS: Metrics = {
   quality: 80,
   security: 80,
@@ -28,9 +31,10 @@ function createRuntimes(
     prs.map((pr) => [
       pr.id,
       {
-        status: 'waiting',
-        arrivedAtMs: null,
+        status: 'available',
+        activatedAtMs: null,
         deadlineAtMs: null,
+        remainingMs: pr.slaMs,
         resolvedAtMs: null,
         verdict: null,
         flags: [],
@@ -87,10 +91,15 @@ export class ReviewGame {
     this.state = createInitialState(this.shiftPRs);
     this.state.screen = 'shift';
     this.addLog(
-      `REVIEW TERMINAL ONLINE. ${this.shiftPRs.length} PRs inbound.`,
+      `REVIEW TERMINAL ONLINE. ${this.shiftPRs.length} PRs queued · ${formatClock(
+        MAX_SLA_MS,
+      )} per review.`,
       'info',
     );
-    this.advanceWorld();
+    const first = this.firstAvailable();
+    if (first !== null) {
+      this.activatePR(first);
+    }
     this.startLoop();
     this.emit('render');
   }
@@ -134,35 +143,15 @@ export class ReviewGame {
   private advanceWorld(): boolean {
     let structural = false;
 
-    for (const pr of this.shiftPRs) {
-      const runtime = this.state.prs[pr.id];
-      if (
-        runtime.status === 'waiting' &&
-        this.state.elapsedMs >= pr.arrivalDelayMs
-      ) {
-        runtime.status = 'available';
-        runtime.arrivedAtMs = pr.arrivalDelayMs;
-        runtime.deadlineAtMs = pr.arrivalDelayMs + pr.slaMs;
-        structural = true;
-        this.addLog(
-          `PR #${pr.number} arrived from ${pr.author}. SLA ${formatClock(pr.slaMs)}.`,
-          'info',
-        );
-        if (this.state.activePrId === null) {
-          this.state.activePrId = pr.id;
-        }
-      }
-    }
-
-    for (const pr of this.shiftPRs) {
-      const runtime = this.state.prs[pr.id];
+    const active = this.activePR();
+    if (active !== null) {
+      const runtime = this.state.prs[active.id];
       if (
         runtime.status === 'available' &&
         runtime.deadlineAtMs !== null &&
         this.state.elapsedMs >= runtime.deadlineAtMs
       ) {
-        const wasActive = this.state.activePrId === pr.id;
-        this.finishPR(pr, 'timeout', wasActive);
+        this.finishPR(active, 'timeout', true);
         structural = true;
       }
     }
@@ -173,6 +162,38 @@ export class ReviewGame {
     }
 
     return structural;
+  }
+
+  private activatePR(pr: PullRequest): void {
+    const runtime = this.state.prs[pr.id];
+    if (runtime.status !== 'available') {
+      return;
+    }
+
+    const current = this.activePR();
+    if (current !== null && current.id !== pr.id) {
+      const currentRuntime = this.state.prs[current.id];
+      if (
+        currentRuntime.status === 'available' &&
+        currentRuntime.deadlineAtMs !== null
+      ) {
+        currentRuntime.remainingMs = Math.max(
+          0,
+          currentRuntime.deadlineAtMs - this.state.elapsedMs,
+        );
+        currentRuntime.deadlineAtMs = null;
+      }
+    }
+
+    this.state.activePrId = pr.id;
+    runtime.activatedAtMs = this.state.elapsedMs;
+    runtime.deadlineAtMs = this.state.elapsedMs + runtime.remainingMs;
+    this.addLog(
+      `Reviewing PR #${pr.number}: ${pr.title}. SLA ${formatClock(
+        runtime.remainingMs,
+      )}.`,
+      'info',
+    );
   }
 
   private finishPR(pr: PullRequest, verdict: Verdict, showModal: boolean): void {
@@ -190,6 +211,8 @@ export class ReviewGame {
     runtime.status = 'resolved';
     runtime.verdict = verdict;
     runtime.resolvedAtMs = this.state.elapsedMs;
+    runtime.remainingMs = 0;
+    runtime.deadlineAtMs = null;
     runtime.result = result;
 
     this.state.results.push(result);
@@ -211,7 +234,11 @@ export class ReviewGame {
     }
 
     if (this.state.activePrId === pr.id) {
-      this.state.activePrId = this.firstAvailable()?.id ?? null;
+      this.state.activePrId = null;
+      const next = this.firstAvailable();
+      if (next !== null) {
+        this.activatePR(next);
+      }
     }
 
     if (showModal && this.state.modal === null) {
@@ -319,7 +346,10 @@ export class ReviewGame {
       if (this.allResolved()) {
         this.finishShift();
       } else if (this.state.activePrId === null) {
-        this.state.activePrId = this.firstAvailable()?.id ?? null;
+        const next = this.firstAvailable();
+        if (next !== null) {
+          this.activatePR(next);
+        }
       }
 
       this.emit('render');
@@ -343,7 +373,12 @@ export class ReviewGame {
       return;
     }
 
-    this.state.activePrId = id;
+    const pr = this.shiftPRs.find((item) => item.id === id);
+    if (pr === undefined) {
+      return;
+    }
+
+    this.activatePR(pr);
     this.emit('render');
   }
 
@@ -360,7 +395,7 @@ export class ReviewGame {
     );
     const nextIndex =
       (currentIndex + direction + available.length) % available.length;
-    this.state.activePrId = available[nextIndex].id;
+    this.activatePR(available[nextIndex]);
     this.emit('render');
   }
 
@@ -606,11 +641,11 @@ export function remainingFor(
   pr: PullRequest,
 ): number {
   const runtime = state.prs[pr.id];
-  if (runtime.status === 'waiting' || runtime.deadlineAtMs === null) {
-    return pr.slaMs;
-  }
   if (runtime.status === 'resolved') {
     return 0;
+  }
+  if (runtime.deadlineAtMs === null) {
+    return runtime.remainingMs;
   }
   return Math.max(0, runtime.deadlineAtMs - state.elapsedMs);
 }

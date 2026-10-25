@@ -29,8 +29,7 @@ const cleanPr: PullRequest = {
     },
   ],
   defects: [],
-  arrivalDelayMs: 0,
-  slaMs: 100_000,
+  slaMs: 30_000,
   ci: 'PASS',
   tests: '1 passed',
 };

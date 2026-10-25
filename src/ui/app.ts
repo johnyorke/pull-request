@@ -5,7 +5,7 @@ import {
   TYPE_SHORT,
 } from '../data/guidelines';
 import { PR_BY_ID } from '../data/levels';
-import { formatClock, remainingFor, ReviewGame } from '../game/engine';
+import { CRITICAL_SLA_MS, formatClock, remainingFor, ReviewGame } from '../game/engine';
 import { rankFor } from '../game/scoring';
 import type {
   Defect,
@@ -415,9 +415,9 @@ export class App {
           ? runtime.verdict === 'approved'
             ? 'MERGED'
             : 'CLOSED'
-          : runtime.status === 'waiting'
-            ? 'INBOUND'
-            : 'READY';
+          : active
+            ? 'REVIEWING'
+            : 'QUEUED';
 
       return `
         <button
@@ -450,15 +450,6 @@ export class App {
     pr: PullRequest,
     runtime: PRRuntime,
   ): { label: string; critical: boolean } {
-    if (runtime.status === 'waiting') {
-      return {
-        label: `T-${formatClock(
-          Math.max(0, pr.arrivalDelayMs - state.elapsedMs),
-        )}`,
-        critical: false,
-      };
-    }
-
     if (runtime.status === 'resolved') {
       if (runtime.verdict === 'approved') {
         return { label: 'MERGED', critical: false };
@@ -472,7 +463,8 @@ export class App {
     const remaining = remainingFor(state, pr);
     return {
       label: formatClock(remaining),
-      critical: remaining <= 30_000,
+      critical:
+        state.activePrId === pr.id && remaining <= CRITICAL_SLA_MS,
     };
   }
 
@@ -485,7 +477,7 @@ export class App {
     }
 
     const remaining = remainingFor(state, pr);
-    const critical = remaining <= 30_000;
+    const critical = remaining <= CRITICAL_SLA_MS;
     const agent = pr.authorKind === 'agent';
     const fileTabs = pr.files
       .map(
@@ -694,15 +686,15 @@ export class App {
   }
 
   private renderEmptyReview(state: GameState): string {
-    const waiting = this.game.pullRequests.filter(
-      (pr) => state.prs[pr.id].status === 'waiting',
+    const remaining = this.game.pullRequests.filter(
+      (pr) => state.prs[pr.id].status !== 'resolved',
     );
     return `
       <section class="review-panel panel empty-review">
         <div class="empty-glyph">[ NO ACTIVE PULL REQUEST ]</div>
         <p>${
-          waiting.length > 0
-            ? `${waiting.length} PR${waiting.length === 1 ? '' : 's'} still inbound.`
+          remaining.length > 0
+            ? `${remaining.length} PR${remaining.length === 1 ? '' : 's'} queued.`
             : 'Queue drained. Generating report.'
         }</p>
       </section>
@@ -719,9 +711,9 @@ export class App {
         <div class="panel-title">QUEUE</div>
         <div class="empty-copy">${
           this.game.pullRequests.filter(
-            (pr) => state.prs[pr.id].status === 'waiting',
+            (pr) => state.prs[pr.id].status !== 'resolved',
           ).length
-        } inbound.</div>
+        } queued.</div>
       </section>
     `;
   }
@@ -1136,7 +1128,7 @@ export class App {
       ) {
         const remaining = remainingFor(state, pr);
         slaTime.textContent = formatClock(remaining);
-        slaBlock.classList.toggle('is-critical', remaining <= 30_000);
+        slaBlock.classList.toggle('is-critical', remaining <= CRITICAL_SLA_MS);
         slaMeter.style.width = `${Math.max(
           0,
           Math.min(100, (remaining / pr.slaMs) * 100),
@@ -1393,9 +1385,6 @@ export class App {
           if (runtime.status === 'available') {
             this.revealCursorNext = true;
             this.game.selectPR(pr.id);
-          } else if (runtime.status === 'waiting') {
-            this.game.addLog(`PR #${pr.number} is still inbound.`, 'warning');
-            this.render();
           }
         }
         break;

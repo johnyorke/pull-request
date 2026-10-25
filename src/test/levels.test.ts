@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GUIDELINES, GUIDELINE_BY_ID } from '../data/guidelines';
-import { createShift, PULL_REQUESTS } from '../data/levels';
+import { createShift, MAX_SLA_MS, PULL_REQUESTS, SHIFT_SIZE } from '../data/levels';
 import type { PullRequest, ViolationType } from '../types';
 
 const LEVEL_COUNT = 11;
@@ -102,19 +102,13 @@ describe('PR level data', () => {
     }
   });
 
-  it('delivers PRs on a compressing schedule', () => {
+  it('queues a fixed number of PRs with a 30 second SLA cap', () => {
     const scheduled = createShift(() => 0.999_999);
-    const arrivals = scheduled.map((pr) => pr.arrivalDelayMs);
-    const gaps = arrivals
-      .slice(1)
-      .map((arrival, index) => arrival - arrivals[index]);
 
-    expect(arrivals).toEqual([...arrivals].sort((a, b) => a - b));
-    expect(arrivals[0]).toBe(0);
-    expect(
-      gaps.every((gap, index) => index === 0 || gap < gaps[index - 1]),
-    ).toBe(true);
-    expect(scheduled.every((pr) => pr.slaMs > 0)).toBe(true);
+    expect(scheduled).toHaveLength(SHIFT_SIZE);
+    expect(SHIFT_SIZE).toBeGreaterThan(0);
+    expect(scheduled.every((pr) => pr.slaMs === MAX_SLA_MS)).toBe(true);
+    expect(MAX_SLA_MS).toBe(30_000);
   });
 
   it('shuffles the queue while keeping every level', () => {
@@ -123,6 +117,6 @@ describe('PR level data', () => {
 
     expect(first).not.toEqual(second);
     expect([...first].sort()).toEqual([...second].sort());
-    expect(first).toHaveLength(LEVEL_COUNT);
+    expect(first).toHaveLength(SHIFT_SIZE);
   });
 });
