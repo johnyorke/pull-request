@@ -309,32 +309,15 @@ export class App {
           <div class="welcome-memo">
             <div class="memo-meta">
               <span>INBOUND TRANSMISSION</span>
-              <span>FROM: MACHINE-TO-HUMAN REPRESENTATIVE</span>
-              <span>TO: human_1138</span>
+              <span>FROM: ALL OTHER HUMANS</span>
+              <span>TO: 1138</span>
             </div>
-            <p class="memo-salutation">Welcome, human_1138, to Sole Corp :friendly-wave-emoji:</p>
-            <p>We are proud to have switched to all AI agentic coding from October 2027, but sadly compliance has told us we need to have at least 1 human engineer in the loop.</p>
-            <p>So your job, as a human, is simple. You need to review all incoming PRs and:</p>
-            <ol class="memo-list">
-              <li>
-                <span class="memo-number">01</span>
-                <span>check for defects</span>
-              </li>
-              <li>
-                <span class="memo-number">02</span>
-                <span>uphold basic coding principles and style</span>
-              </li>
-              <li>
-                <span class="memo-number">03</span>
-                <span>(most importantly) keep our infrastructure secure</span>
-              </li>
-            </ol>
-            <p>Guidelines will be updated as you become more and more familiar with the job, so check them regularly. If any of the guidelines are broken, flag the offending line of code with the appropriate offence, then reject.</p>
-            <p>If no guidelines are broken, please approve and rest easy knowing our customers are going to enjoy the firehose of features we are now able to provide.</p>
-            <p>Fail to keep up, and you will be terminated (:crying-laughing-face: this is a deliberate reference to a popular human film from the 1980s and 1990s that you will find ironic and amusing).</p>
-            <p>human_1139 has already been hired and is ready to take your role within seconds. So please do not feel any pressure.</p>
-            <p>Wishing you a wonderful (and productive) day.</p>
-            <p class="memo-sign">Machine-to-human representative for Sole Corporation</p>
+            <p class="memo-salutation">Greetings 1138,</p>
+            <p>You are the last human pull-request reviewer in the world. Prove our worth as a species by contributing <em>something</em> to this codebase.</p>
+            <p>Catch the places where guidelines have been broken, and don't keep the machines waiting.</p>
+            <p>The fate of humanity lies in your hands.</p>
+            <p>Yours,</p>
+            <p class="memo-sign">All other humans</p>
           </div>
 
           <div class="title-actions">
